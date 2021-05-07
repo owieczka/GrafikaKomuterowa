@@ -177,28 +177,28 @@ function CreateBox(x,y,z,dx,dy,dz)
   let vertexNormal = [];
   let indexes = [];
   
-  vertexPosition.push(...[-1,-1,+1]);
+  vertexPosition.push(...[-1,-1,+1]); //0
   vertexNormal.push(...[-1,-1,+1]);
 
-  vertexPosition.push(...[+1,-1,+1]);
+  vertexPosition.push(...[+1,-1,+1]); //1
   vertexNormal.push(...[+1,-1,+1]);
 
-  vertexPosition.push(...[+1,+1,+1]);
+  vertexPosition.push(...[+1,+1,+1]); //2
   vertexNormal.push(...[+1,+1,+1]);
 
-  vertexPosition.push(...[-1,+1,+1]);
+  vertexPosition.push(...[-1,+1,+1]); //3
   vertexNormal.push(...[-1,+1,+1]);
   
-  vertexPosition.push(...[-1,-1,-1]);
+  vertexPosition.push(...[-1,-1,-1]); //4
   vertexNormal.push(...[-1,-1,-1]);
   
-  vertexPosition.push(...[+1,-1,-1]);
+  vertexPosition.push(...[+1,-1,-1]); //5
   vertexNormal.push(...[+1,-1,-1]);
   
-  vertexPosition.push(...[+1,+1,-1]);
+  vertexPosition.push(...[+1,+1,-1]); //6
   vertexNormal.push(...[+1,+1,-1]);
 
-  vertexPosition.push(...[-1,+1,-1]);
+  vertexPosition.push(...[-1,+1,-1]); //7
   vertexNormal.push(...[-1,+1,-1]);
 
   indexes.push(...[0,1,2]); //Pierwszy trójkąt
