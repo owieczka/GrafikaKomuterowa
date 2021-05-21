@@ -2,6 +2,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <script type="text/javascript">
+"use strict"
 var gl;
 var shaderProgram;
 var uPMatrix;
@@ -10,6 +11,7 @@ var vertexColorBuffer;
 var vertexCoordsBuffer;
 var vertexNormalBuffer;
 var indexBuffer;
+var textureBuffer;
 
 function MatrixMul(a,b) //Mnożenie macierzy
 {
@@ -331,7 +333,7 @@ async function LoadObj(filename)
  
   //console.log(indexes);
   //console.log(vertexPosition);
-  return [indexes, vertexPosition, vertexNormal];
+  return [indexes, vertexPosition, vertexNormal, vertexCoord];
 }
 
 function CreateTetris()
@@ -649,23 +651,27 @@ async function startGL()
     precision highp float;
     attribute vec3 aVertexPosition; 
     attribute vec3 aVertexNormal;
+    attribute vec2 aVertexCoord;
     uniform mat4 uMMatrix;
     uniform mat4 uInvMMatrix;
     uniform mat4 uVMatrix;
     uniform mat4 uPMatrix;
     varying vec3 vPos;
     varying vec3 vNormal;
+    varying vec2 vCoord;
     uniform float uNormalMul;
     void main(void) {
       vPos = vec3(uMMatrix * vec4(aVertexPosition, 1.0));
       gl_Position = uPMatrix * uVMatrix * vec4(vPos,1.0); //Dokonanie transformacji położenia punktów z przestrzeni 3D do przestrzeni obrazu (2D)
       vNormal = normalize(mat3(uInvMMatrix) * uNormalMul*aVertexNormal); //Obrot wektorow normalnych
+      vCoord = aVertexCoord;
     }
   `;
   const fragmentShaderSource = `
     precision highp float;
     varying vec3 vPos;
     varying vec3 vNormal;
+    varying vec2 vCoord;
     uniform sampler2D uSampler;
     uniform vec3 uLightPosition;
     uniform vec3 uColor;
@@ -676,7 +682,8 @@ async function startGL()
       //gl_FragColor = texture2D(uSampler,vTexUV)*vec4(vColor,1.0); //Odczytanie punktu tekstury i przypisanie go jako koloru danego punktu renderowaniej figury
       //gl_FragColor = vec4((vNormal+vec3(1.0,1.0,1.0))/2.0,1.0); 
       //gl_FragColor = clamp(texture2D(uSampler,vTexUV) * vec4(brightness,brightness,brightness,1.0),0.0,1.0);
-      gl_FragColor = clamp(vec4(uColor,1.0) * vec4(brightness,brightness,brightness,1.0),0.0,1.0);
+      //gl_FragColor = clamp(vec4(uColor,1.0) * vec4(brightness,brightness,brightness,1.0),0.0,1.0);
+      gl_FragColor = clamp(texture2D(uSampler,vCoord) * vec4(brightness,brightness,brightness,1.0),0.0,1.0);
       //gl_FragColor = clamp(vec4(uColor,1.0) ,0.0,1.0);
     }
   `;
@@ -704,6 +711,7 @@ async function startGL()
   //Opis sceny 3D, położenie punktów w przestrzeni 3D w formacie X,Y,Z 
   let vertexPosition; //3 punkty po 3 składowe - X1,Y1,Z1, X2,Y2,Z2, X3,Y3,Z3 - 1 trójkąt
   let vertexNormal;
+  let vertexCoord;
   let indexes;
   
   //[vertexPosition, vertexColor, vertexCoords, vertexNormal] = CreateShpere(0,0,0,2, 6, 12); 
@@ -712,7 +720,6 @@ async function startGL()
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('Auto3.obj');
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('person.obj');
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('Ludzik.obj');
-  [indexes, vertexPosition, vertexNormal] = await LoadObj('Ludzik7-textured-1.obj');
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('katedra.obj');
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('Ludzik2.obj');
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('Ludzik3.obj');
@@ -720,6 +727,8 @@ async function startGL()
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('Ludzik5.obj');
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('Tetris3.obj');
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('cube.obj');
+  //[indexes, vertexPosition, vertexNormal, vertexCoord] = await LoadObj('Character-3.obj');
+  [indexes, vertexPosition, vertexNormal, vertexCoord] = await LoadObj('Ludzik7-textured-1.obj');
   //const ret = LoadObj('Auto3.obj');
   //ret.value
   
@@ -734,11 +743,28 @@ async function startGL()
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexNormal), gl.STATIC_DRAW);
   vertexNormalBuffer.itemSize = 3;
   vertexNormalBuffer.numItems = vertexNormal.length/9;
+
+  vertexCoordsBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexCoordsBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexCoord), gl.STATIC_DRAW);
+  vertexCoordsBuffer.itemSize = 2;
+  vertexCoordsBuffer.numItems = vertexCoord.length/6;
   
   indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indexes), gl.STATIC_DRAW);
   indexBuffer.numItems = indexes.length;
+
+  textureBuffer = gl.createTexture();
+  var textureImg = new Image();
+  textureImg.onload = function() { //Wykonanie kodu automatycznie po załadowaniu obrazka
+    gl.bindTexture(gl.TEXTURE_2D, textureBuffer);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureImg); //Faktyczne załadowanie danych obrazu do pamieci karty graficznej
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Ustawienie parametrów próbkowania tekstury
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  }
+  textureImg.src="pallet.png"; //Nazwa obrazka
 
   //Macierze opisujące położenie wirtualnej kamery w przestrzenie 3D
   let aspect = gl.viewportWidth/gl.viewportHeight;
@@ -760,8 +786,10 @@ var angleY = 0.0;
 var angleX = 0.0;
 var KameraPositionZ = -8.0;
 
+var ModelAngleY = -90.0;
+
 var Object1PositionX = 0.0;
-var Object1PositionY = 0.0;
+var Object1PositionY = -1.5;
 var Object1PositionZ = 0.0;
 
 var Object1AngleZ = 0.0;
@@ -779,15 +807,15 @@ var Object3PositionZ = 0.0;
 var Object3AngleZ = 0.0;
 
 var LightSize = 0.1;
-var Object1Sizedx = 0.5;
-var Object1Sizedy = 0.5;
-var Object1Sizedz = 0.5;
+var Object1Sizedx = 0.2;
+var Object1Sizedy = 0.2;
+var Object1Sizedz = 0.2;
 var Object2Sizedx = 0.2;
 var Object2Sizedy = 0.2;
 var Object2Sizedz = 0.2;
-var Object3Sizedx = 0.4;
-var Object3Sizedy = 0.4;
-var Object3Sizedz = 0.4;
+var Object3Sizedx = 0.2;
+var Object3Sizedy = 0.2;
+var Object3Sizedz = 0.2;
 
 var LightPositionX = 0;
 var LightPositionY = 0;
@@ -809,11 +837,13 @@ function Tick()
   uVMatrix = MatrixMul(uVMatrix,CreateRotationZMatrix(angleZ));
   uVMatrix = MatrixMul(uVMatrix,CreateTranslationMatrix(0,0,KameraPositionZ));
   
+  uMMatrix1 = MatrixMul(uMMatrix1,CreateRotationYMatrix(ModelAngleY));
   uMMatrix1 = MatrixMul(uMMatrix1,CreateScaleMatrix(Object1Sizedx,Object1Sizedy,Object1Sizedz));
   uMMatrix1 = MatrixMul(uMMatrix1,CreateTranslationMatrix(Object1Sizedx,0.0,0.0)); 
   uMMatrix1 = MatrixMul(uMMatrix1,CreateRotationZMatrix(Object1AngleZ));
   uMMatrix1 = MatrixMul(uMMatrix1,CreateTranslationMatrix(Object1PositionX,Object1PositionY,Object1PositionZ));  
   
+  uMMatrix2 = MatrixMul(uMMatrix2,CreateRotationYMatrix(ModelAngleY));
   uMMatrix2 = MatrixMul(uMMatrix2,CreateScaleMatrix(Object2Sizedx,Object2Sizedy,Object2Sizedz));
   uMMatrix2 = MatrixMul(uMMatrix2,CreateTranslationMatrix(Object2Sizedx,0.0,0.0)); 
   uMMatrix2 = MatrixMul(uMMatrix2,CreateRotationZMatrix(Object2AngleZ));
@@ -823,6 +853,7 @@ function Tick()
   uMMatrix2 = MatrixMul(uMMatrix2,CreateRotationZMatrix(Object1AngleZ));
   uMMatrix2 = MatrixMul(uMMatrix2,CreateTranslationMatrix(Object1PositionX,Object1PositionY,Object1PositionZ));
   
+  uMMatrix3 = MatrixMul(uMMatrix3,CreateRotationYMatrix(ModelAngleY));
   uMMatrix3 = MatrixMul(uMMatrix3,CreateScaleMatrix(Object3Sizedx,Object3Sizedy,Object3Sizedz));
   uMMatrix3 = MatrixMul(uMMatrix3,CreateTranslationMatrix(Object3Sizedx,0.0,0.0)); 
   uMMatrix3 = MatrixMul(uMMatrix3,CreateRotationZMatrix(Object3AngleZ));
@@ -864,8 +895,15 @@ function Tick()
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexNormalBuffer);
   gl.vertexAttribPointer(gl.getAttribLocation(shaderProgram, "aVertexNormal"), vertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
   
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.enableVertexAttribArray(gl.getAttribLocation(shaderProgram, "aVertexCoord"));  //Przekazywanie wektorów normalnych
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexCoordsBuffer);
+  gl.vertexAttribPointer(gl.getAttribLocation(shaderProgram, "aVertexCoord"), vertexCoordsBuffer.itemSize, gl.FLOAT, false, 0, 0);
   
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, textureBuffer);
+  gl.uniform1i(gl.getUniformLocation(shaderProgram, "uSampler"), 0);
   
   gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "uMMatrix"), false, new Float32Array(uMMatrix1));
   gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "uInvMMatrix"), false, new Float32Array(MatrixTransposeInverse(uMMatrix1)));
