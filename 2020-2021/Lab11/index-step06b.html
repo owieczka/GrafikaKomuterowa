@@ -729,7 +729,7 @@ async function startGL()
   //[indexes, vertexPosition, vertexNormal] = await LoadObj('cube.obj');
   //[indexes, vertexPosition, vertexNormal, vertexCoord] = await LoadObj('Character-3.obj');
   //[indexes, vertexPosition, vertexNormal, vertexCoord] = await LoadObj('Ludzik7-textured-1.obj');
-  [indexes, vertexPosition, vertexNormal, vertexCoord] = await LoadObj('Ludzik5-textured-1.obj');
+  [indexes, vertexPosition, vertexNormal, vertexCoord] = await LoadObj('Ludzik5-textured-1-partsA.obj');
   //const ret = LoadObj('Auto3.obj');
   //ret.value
   
@@ -795,14 +795,14 @@ var Object1PositionZ = 0.0;
 
 var Object1AngleZ = 0.0;
 
-var Object2PositionX = 1.0;
-var Object2PositionY = 0.0;
+var Object2PositionX = 0.3;
+var Object2PositionY = 1.5;
 var Object2PositionZ = 0.0;
 
 var Object2AngleZ = 0.0;
 
-var Object3PositionX = 1.0;
-var Object3PositionY = 0.0;
+var Object3PositionX = 0.6;
+var Object3PositionY = 1.5;
 var Object3PositionZ = 0.0;
 
 var Object3AngleZ = 0.0;
@@ -818,13 +818,26 @@ var Object3Sizedx = 0.2;
 var Object3Sizedy = 0.2;
 var Object3Sizedz = 0.2;
 
-var LightPositionX = 0;
+var LightPositionX = -1;
 var LightPositionY = 0;
 var LightPositionZ = 3;
 
 
+let dir = 1;
+
 function Tick()
 { 
+
+  if(dir==1) {
+    Object2AngleZ += 2.0;
+    Object3AngleZ += 2.0;
+    if(Object2AngleZ>30.0) dir = -1;
+  } else {
+    Object2AngleZ -= 2.0;
+    Object3AngleZ -= 2.0;
+    if(Object2AngleZ < -30.0) dir = +1;
+  }
+
   let uMMatrix0 = CreateIdentytyMatrix(); 
   let uMMatrix1 = CreateIdentytyMatrix();
   let uMMatrix2 = CreateIdentytyMatrix();
@@ -846,7 +859,8 @@ function Tick()
   
   uMMatrix2 = MatrixMul(uMMatrix2,CreateRotationYMatrix(ModelAngleY));
   uMMatrix2 = MatrixMul(uMMatrix2,CreateScaleMatrix(Object2Sizedx,Object2Sizedy,Object2Sizedz));
-  uMMatrix2 = MatrixMul(uMMatrix2,CreateTranslationMatrix(Object2Sizedx,0.0,0.0)); 
+  //uMMatrix2 = MatrixMul(uMMatrix2,CreateTranslationMatrix(Object2Sizedx,0.0,0.0)); 
+  uMMatrix2 = MatrixMul(uMMatrix2,CreateTranslationMatrix(-Object2PositionX,-Object2PositionY,-Object2PositionZ));
   uMMatrix2 = MatrixMul(uMMatrix2,CreateRotationZMatrix(Object2AngleZ));
   uMMatrix2 = MatrixMul(uMMatrix2,CreateTranslationMatrix(Object2PositionX,Object2PositionY,Object2PositionZ));
   
@@ -856,11 +870,13 @@ function Tick()
   
   uMMatrix3 = MatrixMul(uMMatrix3,CreateRotationYMatrix(ModelAngleY));
   uMMatrix3 = MatrixMul(uMMatrix3,CreateScaleMatrix(Object3Sizedx,Object3Sizedy,Object3Sizedz));
-  uMMatrix3 = MatrixMul(uMMatrix3,CreateTranslationMatrix(Object3Sizedx,0.0,0.0)); 
+  //uMMatrix3 = MatrixMul(uMMatrix3,CreateTranslationMatrix(Object3Sizedx,0.0,0.0)); 
+  uMMatrix3 = MatrixMul(uMMatrix3,CreateTranslationMatrix(-Object3PositionX,-Object3PositionY,-Object3PositionZ));
   uMMatrix3 = MatrixMul(uMMatrix3,CreateRotationZMatrix(Object3AngleZ));
   uMMatrix3 = MatrixMul(uMMatrix3,CreateTranslationMatrix(Object3PositionX,Object3PositionY,Object3PositionZ));
   
-  uMMatrix3 = MatrixMul(uMMatrix3,CreateTranslationMatrix(Object2Sizedx,0.0,0.0)); 
+  //uMMatrix3 = MatrixMul(uMMatrix3,CreateTranslationMatrix(Object2Sizedx,0.0,0.0)); 
+  uMMatrix3 = MatrixMul(uMMatrix3,CreateTranslationMatrix(-Object2PositionX,-Object2PositionY,-Object2PositionZ));
   uMMatrix3 = MatrixMul(uMMatrix3,CreateRotationZMatrix(Object2AngleZ));
   uMMatrix3 = MatrixMul(uMMatrix3,CreateTranslationMatrix(Object2PositionX,Object2PositionY,Object2PositionZ));
   
@@ -905,26 +921,30 @@ function Tick()
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, textureBuffer);
   gl.uniform1i(gl.getUniformLocation(shaderProgram, "uSampler"), 0);
+
+  let firstModelCount = 452*3;
+  let secoundModelCount = 13*3; //510 trójkątów
+  let thirdModelCount = 45*3
   
   gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "uMMatrix"), false, new Float32Array(uMMatrix1));
   gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "uInvMMatrix"), false, new Float32Array(MatrixTransposeInverse(uMMatrix1)));
   gl.uniform3f(gl.getUniformLocation(shaderProgram, "uColor"),0.5,0.0,0.0);  
   //gl.drawArrays(gl.TRIANGLES, 0, vertexPositionBuffer.numItems*vertexPositionBuffer.itemSize); //Faktyczne wywołanie rendrowania
-  gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+  gl.drawElements(gl.TRIANGLES, firstModelCount, gl.UNSIGNED_SHORT, 0);
   
   //Drugi Obiekt
   gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "uMMatrix"), false, new Float32Array(uMMatrix2));
   gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "uInvMMatrix"), false, new Float32Array(MatrixTransposeInverse(uMMatrix2)));
   gl.uniform3f(gl.getUniformLocation(shaderProgram, "uColor"),0.0,1.0,0.0);
   //gl.drawArrays(gl.TRIANGLES, 0, vertexPositionBuffer.numItems*vertexPositionBuffer.itemSize); //Faktyczne wywołanie rendrowania
-  gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+  gl.drawElements(gl.TRIANGLES, secoundModelCount, gl.UNSIGNED_SHORT, firstModelCount*2);
   
   //Trzeci Obiekt
   gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "uMMatrix"), false, new Float32Array(uMMatrix3));
   gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "uInvMMatrix"), false, new Float32Array(MatrixTransposeInverse(uMMatrix3)));
   gl.uniform3f(gl.getUniformLocation(shaderProgram, "uColor"),0.0,0.0,1.0);
   //gl.drawArrays(gl.TRIANGLES, 0, vertexPositionBuffer.numItems*vertexPositionBuffer.itemSize); //Faktyczne wywołanie rendrowania
-  gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+  gl.drawElements(gl.TRIANGLES, thirdModelCount, gl.UNSIGNED_SHORT, (firstModelCount+secoundModelCount)*2);
   
   //Obiekt Światła
   gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "uMMatrix"), false, new Float32Array(uMMatrix0));
