@@ -202,7 +202,20 @@ function CreateBox(x,y,z,dx,dy,dz)
   vertexNormal.push(  ...[ 0, 0,1, 0,0,1,  0,0,1]);
   vertexBiNormal.push(...[ 0, 1,0, 0,1,0,  0,1,0]);
   vertexCoords.push(...[0,0, 1,1, 0,1]);
-  
+
+  //Trzeci trójkąt
+  vertexPosition.push(...[ 1,-1,1, 1,-1,-1, 1,1,-1]); //Położenie wierzchołków
+  vertexNormal.push(  ...[ 1, 0,0, 1, 0, 0, 1,0, 0]); //Wektor normalny
+  vertexBiNormal.push(...[0,1,0, 0,1,0, 0,1,0]); //WektorBiNormalny -> Up vector -> kierunek w górę na trójkącie
+  vertexCoords.push(...[0,0, 1,0, 1,1]); //Współrzędne tekstury
+
+  //Czwarty trójkąt
+  vertexPosition.push(...[ 1,-1,1, 1,1,-1, 1,1,1]); 
+  vertexNormal.push(  ...[ 1, 0,0, 1,0,0,  1,0,0]);
+  vertexBiNormal.push(...[ 0, 1,0, 0,1,0,  0,1,0]);
+  vertexCoords.push(...[0,0, 1,1, 0,1]);
+
+
   
   return [vertexPosition, vertexNormal, vertexBiNormal, vertexCoords];
 }

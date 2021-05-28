@@ -188,40 +188,20 @@ function CreateBox(x,y,z,dx,dy,dz)
   //Opis sceny 3D, położenie punktów w przestrzeni 3D w formacie X,Y,Z 
   let vertexPosition = []; //3 punkty po 3 składowe - X1,Y1,Z1, X2,Y2,Z2, X3,Y3,Z3 - 1 trójkąt
   let vertexNormal = [];
-  let vertexBiNormal = [];
   let vertexCoords = [];
-  
-  vertexPosition.push(...createRect(-1,-1,-1,0,2,0,2,0,0));
-  vertexPosition.push(...createRect(-1,-1,-1,0,0,2,0,2,0));
-  vertexPosition.push(...createRect(-1,-1,-1,2,0,0,0,0,2));
-  
-  vertexPosition.push(...createRect(1,1,1,-2,0,0,0,-2,0));
-  vertexPosition.push(...createRect(1,1,1,0,-2,0,0,0,-2));
-  vertexPosition.push(...createRect(1,1,1,0,0,-2,-2,0,0));
-  //
-  for(let i=0;i<vertexPosition.length;i=i+9)
-  {
-    vertexNormal.push(...createNormal(vertexPosition[i+0],vertexPosition[i+1],vertexPosition[i+2],vertexPosition[i+3],vertexPosition[i+4],vertexPosition[i+5],vertexPosition[i+6],vertexPosition[i+7],vertexPosition[i+8]));
-  }
-  
-  vertexCoords.push(...createRectCoords(0,0,1,0.0,0.0,1));
-  vertexCoords.push(...createRectCoords(0,0,1,0.0,0.0,1));
-  vertexCoords.push(...createRectCoords(0,0,1,0.0,0.0,1));
-  
-  vertexCoords.push(...createRectCoords(0,0,1,0.0,0.0,1));
-  vertexCoords.push(...createRectCoords(0,0,1,0.0,0.0,1));
-  vertexCoords.push(...createRectCoords(0,0,1,0.0,0.0,1));
-  
-  vertexBiNormal.push(...[0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0]);
-  vertexBiNormal.push(...[0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0]);
-  vertexBiNormal.push(...[1,0,0, 1,0,0, 1,0,0, 1,0,0, 1,0,0, 1,0,0]);
-  
-  vertexBiNormal.push(...[0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0]); //Front
-  vertexBiNormal.push(...[0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0]);
-  vertexBiNormal.push(...[1,0,0, 1,0,0, 1,0,0, 1,0,0, 1,0,0, 1,0,0]);
+
+  //Pierwszy trójkąt
+  vertexPosition.push(...[-1,-1,1, 1,-1,1, 1,1,1]); //Położenie wierzchołków
+  vertexNormal.push(  ...[ 0, 0,1, 0, 0,1, 0,0,1]); //Wektor normalny
+  vertexCoords.push(...[0,0, 1,0, 1,1]); //Współrzędne tekstury
+
+  //Drugi trójkąt
+  vertexPosition.push(...[-1,-1,1, 1,1,1, -1,1,1]); 
+  vertexNormal.push(  ...[ 0, 0,1, 0,0,1,  0,0,1]);
+  vertexCoords.push(...[0,0, 1,1, 0,1]);
   
   
-  return [vertexPosition, vertexNormal, vertexBiNormal, vertexCoords];
+  return [vertexPosition, vertexNormal, vertexCoords];
 }
 
 function startGL() 
@@ -237,7 +217,6 @@ function startGL()
     precision highp float;
     attribute vec3 aVertexPosition; 
     attribute vec3 aVertexNormal;
-    attribute vec3 aVertexBiNormal;
     attribute vec2 aVertexCoords;
     uniform mat4 uMMatrix;
     uniform mat4 uInvMMatrix;
@@ -245,14 +224,12 @@ function startGL()
     uniform mat4 uPMatrix;
     varying vec3 vPos;
     varying vec3 vNormal;
-    varying vec3 vBiNormal;
     varying vec2 vTexUV;
     uniform float uNormalMul;
     void main(void) {
       vPos = vec3(uMMatrix * vec4(aVertexPosition, 1.0));
       gl_Position = uPMatrix * uVMatrix * vec4(vPos,1.0); //Dokonanie transformacji położenia punktów z przestrzeni 3D do przestrzeni obrazu (2D)
       vNormal = normalize(mat3(uInvMMatrix) * uNormalMul*aVertexNormal); //Obrot wektorow normalnych
-      vBiNormal = normalize(mat3(uInvMMatrix) * uNormalMul*aVertexBiNormal);
       vTexUV = aVertexCoords;
     }
   `;
@@ -260,33 +237,17 @@ function startGL()
     precision highp float;
     varying vec3 vPos;
     varying vec3 vNormal;
-    varying vec3 vBiNormal;
     varying vec2 vTexUV;
     uniform sampler2D uSampler;
     uniform vec3 uLightPosition;
     void main(void) {
       vec3 lightDirection = normalize(uLightPosition - vPos);
-      vec3 texNormal = normalize(vec3(texture2D(uSampler,vTexUV))*2.0-1.0);
-      
-      vec3 tangent = normalize(cross(vNormal,vBiNormal));
-      //mat3 RotTexNormal = mat3(tangent,vNormal,vBiNormal);
-      mat3 RotTexNormal = mat3(tangent,vBiNormal,vNormal); //działało
-      //mat3 RotTexNormal = mat3(vNormal,vBiNormal,tangent);
-      //mat3 RotTexNormal = mat3(vBiNormal,vNormal,tangent);
-      //mat3 RotTexNormal = mat3(vBiNormal,tangent,vNormal); //Działało
-      //mat3 RotTexNormal = mat3(vNormal,tangent,vBiNormal);
-      
-      //vec3 localNormal = normalize(vNormal+texNormal);
-      texNormal.x = -texNormal.x; //Włączenie wypukłości
-      vec3 localNormal = normalize(texNormal);
-      //vec3 localNormal = RotTexNormal*texNormal;
-      //vec3 localNormal = vNormal;
-      //float brightness = max(dot(vNormal,lightDirection), 0.0);
+      vec3 localNormal = vNormal;
+
       float brightness = max(dot(localNormal,lightDirection), 0.0);
-      //float brightness  = 1.0;
-      gl_FragColor = clamp(vec4(1.0,1.0,0.0,1.0) * vec4(brightness,brightness,brightness,1.0),0.0,1.0);
-      //gl_FragColor = clamp(vec4(texNormal,1.0) * vec4(brightness,brightness,brightness,1.0),0.0,1.0);
-      //gl_FragColor = clamp(vec4((localNormal+1.0)/2.0,1.0) * vec4(brightness,brightness,brightness,1.0),0.0,1.0);
+      //gl_FragColor = clamp(vec4(1.0,1.0,0.0,1.0) * vec4(brightness,brightness,brightness,1.0),0.0,1.0);
+      gl_FragColor = clamp(texture2D(uSampler,vTexUV)* vec4(brightness,brightness,brightness,1.0),0.0,1.0);
+      
     }
   `;
   let fragmentShader = gl.createShader(gl.FRAGMENT_SHADER); //Stworzenie obiektu shadera 
@@ -313,11 +274,10 @@ function startGL()
   //Opis sceny 3D, położenie punktów w przestrzeni 3D w formacie X,Y,Z 
   let vertexPosition; //3 punkty po 3 składowe - X1,Y1,Z1, X2,Y2,Z2, X3,Y3,Z3 - 1 trójkąt
   let vertexNormal;
-  let vertexBiNormal;
   let vertexCoords;
   
   //[vertexPosition, vertexColor, vertexCoords, vertexNormal] = CreateShpere(0,0,0,2, 6, 12); 
-  [vertexPosition, vertexNormal, vertexBiNormal, vertexCoords] = CreateBox(0,0,0,1,1,1);
+  [vertexPosition, vertexNormal, vertexCoords] = CreateBox(0,0,0,1,1,1);
   console.log(vertexCoords);
   vertexPositionBuffer = gl.createBuffer(); //Stworzenie tablicy w pamieci karty graficznej
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
@@ -330,12 +290,6 @@ function startGL()
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexNormal), gl.STATIC_DRAW);
   vertexNormalBuffer.itemSize = 3;
   vertexNormalBuffer.numItems = vertexNormal.length/9;
-  
-  vertexBiNormalBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBiNormalBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexBiNormal), gl.STATIC_DRAW);
-  vertexBiNormalBuffer.itemSize = 3;
-  vertexBiNormalBuffer.numItems = vertexBiNormal.length/9;
   
   vertexCoordsBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexCoordsBuffer);
@@ -352,8 +306,7 @@ function startGL()
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }
-  textureImg.src="NormalMap.gif"; //Nazwa obrazka
-  //textureImg.src="ColorMap.gif";
+  textureImg.src="ColorMap.gif";
   //Macierze opisujące położenie wirtualnej kamery w przestrzenie 3D
   let aspect = gl.viewportWidth/gl.viewportHeight;
   let fov = 45.0 * Math.PI / 180.0; //Określenie pola widzenia kamery
@@ -445,11 +398,7 @@ function Tick()
   gl.enableVertexAttribArray(gl.getAttribLocation(shaderProgram, "aVertexNormal"));  //Przekazywanie wektorów normalnych
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexNormalBuffer);
   gl.vertexAttribPointer(gl.getAttribLocation(shaderProgram, "aVertexNormal"), vertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-  
-  gl.enableVertexAttribArray(gl.getAttribLocation(shaderProgram, "aVertexBiNormal"));  //Przekazywanie wektorów normalnych
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBiNormalBuffer);
-  gl.vertexAttribPointer(gl.getAttribLocation(shaderProgram, "aVertexBiNormal"), vertexBiNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-  
+
   gl.enableVertexAttribArray(gl.getAttribLocation(shaderProgram, "aVertexCoords"));  //Pass the geometry
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexCoordsBuffer);
   gl.vertexAttribPointer(gl.getAttribLocation(shaderProgram, "aVertexCoords"), vertexCoordsBuffer.itemSize, gl.FLOAT, false, 0, 0);

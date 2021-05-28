@@ -250,6 +250,7 @@ function startGL()
     void main(void) {
       vec3 lightDirection = normalize(uLightPosition - vPos);
       vec3 texNormal = normalize(vec3(texture2D(uSampler,vTexUV))*2.0-1.0);
+      //(0-1)*2-> (0-2)-1-> (-1, 1)
       
       vec3 vTangent = normalize(cross(vBiNormal,vNormal));
       mat3 RotTexNormal = mat3(vTangent,vBiNormal,vNormal);
